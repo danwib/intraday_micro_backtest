@@ -1,4 +1,4 @@
-from src.backtest import generate_synth, strategy, pnl
+from intraday_micro_backtest.backtest import generate_synth, strategy, pnl
 
 def test_shapes():
     df = generate_synth(1000, seed=1)

@@ -35,4 +35,35 @@ def main():
     print({"throughput_rows_per_sec": int(len(df)/dt), "latency_sec": round(dt, 4), "sharpe": float(sharpe)})
 
 if __name__ == "__main__":
+    import argparse, json
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--n", type=int, default=20000)
+    ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--window", type=int, default=20)
+    ap.add_argument("--entry-z", type=float, default=1.0)
+    ap.add_argument("--exit-z", type=float, default=0.2)
+    ap.add_argument("--fee-bps", type=int, default=1)
+    ap.add_argument("--slip-bps", type=int, default=2)
+    args = ap.parse_args()
+
+    df = generate_synth(n=args.n, seed=args.seed)
+    pos = strategy(df, window=args.window, entry_z=args.entry_z, exit_z=args.exit_z)
+    p = pnl(df, pos.values, fee_bps=args.fee_bps, slip_bps=args.slip_bps)
+
+    from time import perf_counter  # if not already imported at top
+    # compute metrics…
+    sharpe = float(np.sqrt(252) * (p.mean() / (p.std() + 1e-9)))
+    out = {
+        "n": len(df),
+        "window": args.window,
+        "entry_z": args.entry_z,
+        "exit_z": args.exit_z,
+        "fee_bps": args.fee_bps,
+        "slip_bps": args.slip_bps,
+        "sharpe": sharpe,
+    }
+    print(json.dumps(out))
+
+
+if __name__ == "__main__":
     main()
