@@ -1,7 +1,0 @@
-{
-  "rows": 20000,
-  "throughput_rows_per_sec": 1339844,
-  "latency_sec": 0.014927,
-  "sharpe": -10.5154,
-  "max_drawdown": -0.9043
-}
