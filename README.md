@@ -1,98 +1,92 @@
 # Intraday Micro-Backtest (Mean-Reversion)
 
-**Vectorized NumPy/pandas micro-backtest** for a simple mean-reversion strategy.  
-Prints performance metrics (throughput/latency) and strategy quality (Sharpe). Educational only — not investment advice.
+> Vectorised NumPy/pandas micro-backtest with transaction costs, JSON metrics, and saved artefacts (plots + params).
 
-## Features
-- **Vectorized** computations (NumPy/pandas) for speed
-- **Configurable** window, entry/exit thresholds, and trading costs
-- **CLI** interface that prints a JSON summary (easy to parse)
-- Basic **performance telemetry** (rows/sec, end-to-end latency)
-- Unit **tests** + optional installable package layout
+## Overview
+This repo demonstrates a minimal, **reproducible** intraday mean-reversion backtest. It focuses on:
+- **Vectorised** signal & P&L computation (no Python loops)
+- **Costs model** (fees + slippage) included in P&L
+- A **CLI** that prints **JSON metrics** to stdout and saves run artefacts
+- **Plots**: equity curve (+ drawdown) saved per run
+- **Tests & CI**: pytest + linting on GitHub Actions
+
+> Educational project — not investment advice.
 
 ---
 
-## Install
-
-From repo root (inside your venv):
+## Quickstart (reproducible)
 
 ```bash
-python -m pip install --upgrade pip
+python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-# install package in editable mode so 'python -m intraday_micro_backtest.backtest' works
 pip install -e .
+
+# Run with sane defaults:
+imb --n 20000 --seed 0 --window 20 --entry-z 1.0 --exit-z 0.2 --fee-bps 1 --slip-bps 2
+# Artefacts saved under runs/YYYYmmdd-HHMMSS/
 ```
 
-Run tests:
-
+Alternative (without console script):
 ```bash
-pytest
+python -m intraday_micro_backtest.cli --n 20000 --seed 0
 ```
 
 ---
 
-## Usage
-
-Run with defaults:
+## CLI usage
 
 ```bash
-python -m intraday_micro_backtest.backtest
+imb --help
+
+imb --n 20000 --seed 0     --window 20 --entry-z 1.0 --exit-z 0.2     --fee-bps 1 --slip-bps 2     --outdir runs/$(date +%Y%m%d-%H%M%S)
 ```
 
-Run with custom parameters:
-
-```bash
-python -m intraday_micro_backtest.backtest   --n 20000   --seed 0   --window 30   --entry-z 1.5   --exit-z 0.3   --fee-bps 0   --slip-bps 0
+Artefacts per run:
 ```
-
-### CLI arguments
-
-| Flag          | Type  | Default | Meaning |
-|---|---:|---:|---|
-| `--n`         | int   | 20000   | Number of synthetic ticks/rows |
-| `--seed`      | int   | 0       | RNG seed for reproducibility |
-| `--window`    | int   | 20      | Rolling window (returns) for z-score |
-| `--entry-z`   | float | 1.0     | Enter long/short when \|z\| exceeds this |
-| `--exit-z`    | float | 0.2     | Flatten when \|z\| falls below this |
-| `--fee-bps`   | int   | 1       | Per-trade fee in basis points |
-| `--slip-bps`  | int   | 2       | Slippage in basis points |
-
-> **Note:** Costs (`fee-bps`, `slip-bps`) are applied on position changes.
+runs/<timestamp>/
+  ├─ metrics.json        # throughput, latency, sharpe, max drawdown
+  ├─ params.json         # CLI params used
+  └─ equity_drawdown.png # plot (equity + drawdown)
+```
 
 ---
 
-## Example output
+## Results (on my machine)
 
-Command:
+| Metric                   | Value       | Notes                                   |
+|--------------------------|-------------|-----------------------------------------|
+| Throughput (rows/sec)    | **1,339,844** | n = 20,000 synthetic rows               |
+| Latency (sec)            | **0.014927**  | end-to-end run                          |
+| Sharpe (annualised)      | **-10.5154**  | synthetic random walk + costs           |
+| Max Drawdown             | **-0.9043**   | on synthetic series                     |
 
+**Command used**
 ```bash
-python -m intraday_micro_backtest.backtest --window 30 --entry-z 1.5 --exit-z 0.3 --fee-bps 0 --slip-bps 0
+imb --n 20000 --seed 0 --window 20 --entry-z 1.0 --exit-z 0.2 --fee-bps 1 --slip-bps 2
 ```
 
-Output (two lines):
+**Artefacts**
+- `runs/20250814-201640/metrics.json`  
+- `runs/20250814-201640/params.json`  
+- Plot:  
+  ![Equity + Drawdown](runs/20250814-201640/equity_drawdown.png)
 
-```json
-{"n": 20000, "window": 30, "entry_z": 1.5, "exit_z": 0.3, "fee_bps": 0, "slip_bps": 0, "sharpe": -0.011407803236681216}
-```
+**Notes**
+- This demo uses a **synthetic random walk**. With costs enabled, simple mean-reversion can show large drawdowns and negative Sharpe.
+- The Sharpe shown is **annualised**. For intraday step data, consider also reporting **per-step Sharpe** or calibrating annualisation to the sampling interval.
 
-```
-{'throughput_rows_per_sec': 6120400, 'latency_sec': 0.0033, 'sharpe': -10.515386317065339}
-```
-
-- The **first line** is a **JSON** summary (easy to capture/parse).  
-- The **second line** is an internal performance summary. If you prefer a single JSON output, you can keep the JSON print and remove the extra summary print in `backtest.py`.
+> Tip: For a nicer demo while staying honest, try `--fee-bps 0 --slip-bps 0`, `--entry-z 1.2 --exit-z 0.4`, or a different `--seed` and paste the new metrics.
 
 ---
 
-## Results (sample, on my machine)
+## Testing & CI
 
-| Metric | Value | Notes |
-|---|---:|---|
-| Throughput (rows/sec) | **6,120,400** | n=20,000 synthetic rows |
-| Latency (sec) | **0.0033** | End-to-end run time |
-| Sharpe (JSON) | **-0.0114** | With seed=0; depends on params/seed |
+```bash
+pytest -q
+```
 
-> Synthetic random walks + costs often yield negative Sharpe by default. Tune `window`, `entry-z`, `exit-z`, and costs to explore behaviour.
+- Invariant tests guard against **look-ahead bias** and ensure **costs reduce P&L**.
+- GitHub Actions runs **black/isort/pytest** on push and PRs.
 
 ---
 
@@ -100,55 +94,29 @@ Output (two lines):
 
 ```
 intraday_micro_backtest/
-├─ src/
-│  └─ intraday_micro_backtest/
-│     ├─ __init__.py
-│     └─ backtest.py
-├─ tests/
-│  └─ test_backtest.py
-├─ pyproject.toml
-├─ setup.cfg
-├─ requirements.txt
-└─ README.md
+├── src/intraday_micro_backtest/
+│   ├── backtest.py       # generate data, signal, P&L
+│   ├── cli.py            # CLI entrypoint (prints JSON; saves artefacts)
+│   ├── plotting.py       # save equity + drawdown plot
+│   └── __init__.py
+├── tests/
+│   ├── test_backtest.py
+│   └── test_invariants.py
+├── requirements.txt
+├── pyproject.toml
+├── setup.cfg
+└── README.md
 ```
 
 ---
 
-## How it works (brief)
-
-1. **Synthetic price series**: random-walk mid price  
-2. **Signal**: z-score of returns over a rolling window  
-3. **Position**: enter long/short when \|z\| > entry-z; flatten when \|z\| < exit-z  
-4. **P&L**: previous position × next return minus costs on turns  
-5. **Sharpe**: mean/std (implementation detail may vary — see code)
+## Next steps (ideas)
+- Add a small **daily OHLC** CSV example alongside synthetic data.
+- Add a **param sweep** script (window / entry-z) that emits a Markdown results table.
+- Report **per-step Sharpe** and/or scale annualisation by sampling interval.
+- Save plots to a stable path (`docs/figures/`) for README linking; ignore `runs/` in `.gitignore`.
 
 ---
 
-## Dev tips
-
-- Reproducibility: set `--seed` and pin package versions if benchmarking.
-- Parsing JSON output:
-  ```bash
-  python -m intraday_micro_backtest.backtest --window 30 ... | head -1 > run.json
-  ```
-- If you see an import warning when running as a module, ensure your `__init__.py` does **not** import `backtest` at import time (keep it minimal).
-
----
-
-## Next steps (nice enhancements)
-
-- Add **plots** (equity curve, drawdown) saved to `figures/`
-- Add **CLI flags** for output directory and PNG saving
-- Add an optional **real dataset** loader (CSV) with date parsing
-- Export metrics as a **single JSON** object (consolidated)
-
----
-
-## License
-
-MIT — see `LICENSE`.
-
----
-
-*This repository is for educational purposes and does not constitute investment advice.*
+**License:** MIT
 
