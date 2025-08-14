@@ -1,12 +1,17 @@
-import argparse, json, time
+import argparse
+import json
+import time
 from pathlib import Path
+
 import numpy as np
 
-from .backtest import generate_synth, strategy, pnl
+from .backtest import generate_synth, pnl, strategy
 from .plotting import save_equity_and_drawdown
+
 
 def _nowstamp():
     return time.strftime("%Y%m%d-%H%M%S")
+
 
 def main():
     ap = argparse.ArgumentParser()
@@ -20,7 +25,8 @@ def main():
     ap.add_argument("--outdir", type=str, default=f"runs/{_nowstamp()}")
     args = ap.parse_args()
 
-    out = Path(args.outdir); out.mkdir(parents=True, exist_ok=True)
+    out = Path(args.outdir)
+    out.mkdir(parents=True, exist_ok=True)
 
     df = generate_synth(n=args.n, seed=args.seed)
 
@@ -46,6 +52,7 @@ def main():
     }
     (out / "metrics.json").write_text(json.dumps(metrics, indent=2))
     print(json.dumps(metrics))
+
 
 if __name__ == "__main__":
     main()

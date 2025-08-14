@@ -19,7 +19,8 @@ jobs:
           pip install black isort pytest
       - name: Lint
         run: |
+          pip install black==24.8.0 isort==5.13.2
           black --check .
-          isort --check-only .
+          isort --check-only . --profile black
       - name: Test
         run: pytest

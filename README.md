@@ -66,9 +66,9 @@ imb --n 20000 --seed 0 --window 20 --entry-z 1.0 --exit-z 0.2 --fee-bps 1 --slip
 ```
 
 **Artefacts**
-- `runs/20250814-201640/metrics.json`  
-- `runs/20250814-201640/params.json`  
-- Plot:  
+- `runs/20250814-201640/metrics.json`
+- `runs/20250814-201640/params.json`
+- Plot:
   ![Equity + Drawdown](runs/20250814-201640/equity_drawdown.png)
 
 **Notes**
@@ -119,4 +119,3 @@ intraday_micro_backtest/
 ---
 
 **License:** MIT
-
